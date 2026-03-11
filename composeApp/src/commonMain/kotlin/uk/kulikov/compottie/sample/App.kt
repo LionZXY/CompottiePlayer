@@ -3,6 +3,7 @@ package uk.kulikov.compottie.sample
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,117 +78,146 @@ fun App() {
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .safeContentPadding()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                "Lottie Player",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            // URL input row
-            Row(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 600.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+        DropTargetContainer(
+            onFileDrop = { bytes ->
+                val isZip = bytes.size >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte()
+                animationSource = AnimationSource.FileBytes(bytes, isZip)
+            },
+        ) { isDragging ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .safeContentPadding()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                OutlinedTextField(
-                    value = urlText,
-                    onValueChange = { urlText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Paste Lottie URL (.json or .lottie)") },
-                    singleLine = true,
+                Text(
+                    "Lottie Player",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
-                Button(
-                    onClick = {
-                        if (urlText.isNotBlank()) {
-                            animationSource = AnimationSource.Url(urlText.trim())
-                        }
-                    },
-                    enabled = urlText.isNotBlank(),
+
+                Spacer(Modifier.height(12.dp))
+
+                // URL input row
+                Row(
+                    modifier = Modifier.fillMaxWidth().widthIn(max = 600.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Load")
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(onClick = { showFilePicker = true }) {
-                    Text("Open File")
-                }
-                if (animationSource != null) {
-                    OutlinedButton(
+                    OutlinedTextField(
+                        value = urlText,
+                        onValueChange = { urlText = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Paste Lottie URL (.json or .lottie)") },
+                        singleLine = true,
+                    )
+                    Button(
                         onClick = {
-                            animationSource = null
-                            urlText = ""
+                            if (urlText.isNotBlank()) {
+                                animationSource = AnimationSource.Url(urlText.trim())
+                            }
                         },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
+                        enabled = urlText.isNotBlank(),
                     ) {
-                        Text("Clear")
+                        Text("Load")
                     }
                 }
-            }
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
 
-            // Animation display
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .widthIn(max = 600.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                AnimatedContent(animationSource) { source ->
-                    if (source != null) {
-                        LottiePlayer(
-                            source = source,
-                            iterations = iterations,
-                            speed = speed,
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(onClick = { showFilePicker = true }) {
+                        Text("Open File")
+                    }
+                    if (animationSource != null) {
+                        OutlinedButton(
+                            onClick = {
+                                animationSource = null
+                                urlText = ""
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                        ) {
+                            Text("Clear")
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Animation display
+                val dropBorder = if (isDragging) {
+                    Modifier.border(
+                        width = 3.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                } else {
+                    Modifier
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .widthIn(max = 600.dp)
+                        .then(dropBorder)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isDragging) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isDragging) {
+                        Text(
+                            "Drop file here",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                "No animation loaded",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "Paste a URL or open a .json / .lottie file",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                textAlign = TextAlign.Center,
-                            )
+                        AnimatedContent(animationSource) { source ->
+                            if (source != null) {
+                                LottiePlayer(
+                                    source = source,
+                                    iterations = iterations,
+                                    speed = speed,
+                                )
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        "No animation loaded",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        "Drop a file, paste a URL, or click Open File",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-            // Playback controls
-            if (animationSource != null) {
-                PlaybackControls(
-                    iterations = iterations,
-                    onIterationsChange = { iterations = it },
-                    speed = speed,
-                    onSpeedChange = { speed = it },
-                )
+                // Playback controls
+                if (animationSource != null) {
+                    PlaybackControls(
+                        iterations = iterations,
+                        onIterationsChange = { iterations = it },
+                        speed = speed,
+                        onSpeedChange = { speed = it },
+                    )
+                }
             }
         }
     }
