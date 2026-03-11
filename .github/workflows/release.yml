@@ -13,11 +13,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            targets: "packageDeb packageReleaseUnsignedBundle wasmJsBrowserDistribution jsBrowserDistribution"
+            targets: ":composeApp:packageDeb :composeApp:assembleRelease :composeApp:wasmJsBrowserDistribution :composeApp:jsBrowserDistribution"
           - os: macos-latest
-            targets: "packageDmg"
+            targets: ":composeApp:packageDmg"
           - os: windows-latest
-            targets: "packageMsi"
+            targets: ":composeApp:packageMsi"
 
     runs-on: ${{ matrix.os }}
 
@@ -41,7 +41,7 @@ jobs:
         run: |
           mkdir -p release-artifacts
           cp composeApp/build/compose/binaries/main/deb/*.deb release-artifacts/ || true
-          cp composeApp/build/outputs/bundle/release/*.aab release-artifacts/ || true
+          cp composeApp/build/outputs/apk/release/*.apk release-artifacts/ || true
           cd composeApp/build/dist/wasmJs/productionExecutable && zip -r ../../../../../release-artifacts/web-wasm.zip . && cd -
 
       - name: Collect macOS artifacts
